@@ -1,6 +1,7 @@
 import { WebSocket } from "ws";
 import { OutgoingMessage } from "./types/out";
-import { SubscriptionManager } from "./SubscriptionManager";
+import { RedisManager } from "./SubscriptionManager";
+
 import { IncomingMessage, SUBSCRIBE, UNSUBSCRIBE } from "./types/in";
 
 export class User {
@@ -31,13 +32,19 @@ export class User {
         this.ws.on("message", (message: string) => {
             const parsedMessage: IncomingMessage = JSON.parse(message);
             if (parsedMessage.method === SUBSCRIBE) {
-                 SubscriptionManager.getInstance().subscribe(this.id, parsedMessage.spreadsheetId)
+                 RedisManager.getInstance().subscribe(this.id, parsedMessage.spreadsheetId)
             }
 
             if (parsedMessage.method === UNSUBSCRIBE) {
-                SubscriptionManager.getInstance().unsubscribe(this.id, parsedMessage.spreadsheetId)
+                RedisManager.getInstance().unsubscribe(this.id, parsedMessage.spreadsheetId)
             }
         });
+    }
+
+    private userLeft(id : string){
+this.subscriptions.forEach(s => RedisManager.getInstance().unsubscribe(id, s));
+
+
     }
 
 }

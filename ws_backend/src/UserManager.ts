@@ -1,6 +1,7 @@
 import { WebSocket } from "ws";
 import { User } from "./User";
-import { SubscriptionManager } from "./SubscriptionManager";
+// import { SubscriptionManager } from "./SubscriptionManager";
+import { RedisManager } from "./SubscriptionManager";
 
 export class UserManager {
     private static instance: UserManager;
