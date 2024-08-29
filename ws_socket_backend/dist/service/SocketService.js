@@ -31,6 +31,9 @@ class socketService {
             socket.on("UNSUBSCRIBE", (data) => {
                 this.unsubscribe(socket.id, data);
             });
+            socket.on("STATE", (data) => {
+                this.handlestatechange(socket.id, data);
+            });
             socket.on('disconnect', () => {
                 console.log('user disconnected');
             });
@@ -38,9 +41,6 @@ class socketService {
     }
     getSocket() {
         return this.socket;
-    }
-    genRandomString() {
-        return Math.random().toString(36).substring(7);
     }
     subscribe(socketId, d) {
         var _a, _b;
@@ -52,6 +52,7 @@ class socketService {
             if ((_a = this.Subscriptions.get(socketId)) === null || _a === void 0 ? void 0 : _a.includes(data.SpreadSheetId)) {
                 return;
             }
+            console.log("subscribed");
             this.Subscriptions.set(socketId, [...(this.Subscriptions.get(socketId) || []), data.SpreadSheetId]);
             this.reverseSubscriptions.set(data.SpreadSheetId, [...(this.reverseSubscriptions.get(data.SpreadSheetId) || []), socketId]);
             if (((_b = this.reverseSubscriptions.get(data.SpreadSheetId)) === null || _b === void 0 ? void 0 : _b.length) == 1) {
@@ -87,6 +88,22 @@ class socketService {
         }
         catch (err) {
             console.log(err);
+        }
+    }
+    handlestatechange(socketId, d) {
+        const data = JSON.parse(d);
+        console.log(data);
+        console.log("pushed to redis queue");
+        let isPushed = true;
+        if (isPushed) {
+            const subscribers = this.reverseSubscriptions.get(data.SpreadSheetId);
+            console.log(subscribers);
+            if (subscribers) {
+                subscribers.forEach(subscriber => {
+                    if (subscriber != socketId)
+                        this.io.to(subscriber).emit("STATE", data);
+                });
+            }
         }
     }
 }

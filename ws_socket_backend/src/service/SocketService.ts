@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { Indata } from "../types";
+import { InStateData, Indata } from "../types";
 
 export class socketService {
     private static instance: socketService;
@@ -30,11 +30,14 @@ export class socketService {
 
         this.io.on('connection', (socket) => {
             console.log('a user connected');
-            socket.on("SUBSCRIBE", (data: string) => {
+            socket.on("SUBSCRIBE", (data:string) => {
                 this.subscribe(socket.id, data)
             })
             socket.on("UNSUBSCRIBE", (data: string) => {
                 this.unsubscribe(socket.id, data)
+            })
+            socket.on("STATE", (data:string)=>{
+                this.handlestatechange(socket.id, data)
             })
             socket.on('disconnect', () => {
                 console.log('user disconnected');
@@ -44,28 +47,30 @@ export class socketService {
     public getSocket() {
         return this.socket;
     }
-    private genRandomString() {
-        return Math.random().toString(36).substring(7);
-    }
 
-    private subscribe(socketId: string, d: string) {
+    private subscribe(socketId: string,d: string) {
 
         try {
-
             const data: Indata = JSON.parse(d)
-
+            
+            
 
             if (!data.SpreadSheetId) {
+                
                 return
             }
+
             if (this.Subscriptions.get(socketId)?.includes(data.SpreadSheetId)) {
                 return
             }
+    console.log("subscribed")            
 
 
             this.Subscriptions.set(socketId, [...(this.Subscriptions.get(socketId) || []), data.SpreadSheetId])
+
             this.reverseSubscriptions.set(data.SpreadSheetId, [...(this.reverseSubscriptions.get(data.SpreadSheetId) || []), socketId])
             if (this.reverseSubscriptions.get(data.SpreadSheetId)?.length == 1) {
+                
                 console.log("subscribe to redis for " + data.SpreadSheetId)
             }
 
@@ -75,7 +80,7 @@ export class socketService {
         }
     }
 
-    private unsubscribe(socketId: string, d: string) {
+    private unsubscribe(socketId: string, d : string) {
         try {
 
             const data: Indata = JSON.parse(d)
@@ -105,4 +110,23 @@ export class socketService {
         }
 
     }
+   private handlestatechange(socketId : string,d: string){
+    const data :InStateData = JSON.parse(d)
+    
+
+
+        console.log("pushed to redis queue")
+        let isPushed = true
+        if (isPushed ){
+            const subscribers = this.reverseSubscriptions.get(data.SpreadSheetId)
+            console.log(subscribers)
+            if (subscribers){
+                subscribers.forEach(subscriber=>{
+                    if(subscriber != socketId)
+                    this.io.to(subscriber).emit("STATE",data)
+                })
+            }
+        }
+ 
+   } 
 }

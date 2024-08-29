@@ -1,14 +1,17 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express = require('express');
 const http = require('http');
 const SocketService_1 = require("./service/SocketService");
 const port = process.env.PORT || 4000;
-const cors = require("cors");
+const cors_1 = __importDefault(require("cors"));
 //making httpserver and socket server
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use((0, cors_1.default)());
 const server = http.createServer(app);
 SocketService_1.socketService.getInstance().io.attach(server);
 //initialising listeners

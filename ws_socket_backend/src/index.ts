@@ -4,8 +4,7 @@ const express = require('express');
 const http = require('http');
 import {socketService} from "./service/SocketService"
 const port = process.env.PORT || 4000;
-const cors= require("cors")
-
+import cors from "cors"
 //making httpserver and socket server
 const app = express();
 app.use(express.json())
