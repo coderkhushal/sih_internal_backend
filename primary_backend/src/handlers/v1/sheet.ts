@@ -6,10 +6,14 @@ const prisma = DbManager.getInstance().getClient();
 export const GetSheetState = async (req: Request, res: Response) => {
     try{
         
-        const { sheetId } = req.params;
+        const { SheetId } = req.query;
+        if(!SheetId){
+            return res.status(400).json({ error: "Sheet ID is required" });
+        }
+
         const sheet = await prisma.sheet.findUnique({
             where: {
-                id: parseInt(sheetId),
+                id: parseInt(SheetId.toString()),
             },
         });
         if (!sheet) {

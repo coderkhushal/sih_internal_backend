@@ -11,6 +11,8 @@ const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, cors_1.default)({
     credentials: true,
+    allowedHeaders: "*",
+    origin: "*"
 }));
 app.use(express_1.default.json());
 app.use(body_parser_1.default.json());
@@ -19,6 +21,7 @@ app.use(body_parser_1.default.urlencoded({ extended: true }));
 app.use("/auth", require("./routes/auth"));
 app.use("/spreadsheet", require("./routes/spreadsheet"));
 app.use("/collaborators", require("./routes/collaborators"));
+app.use("/sheet", require("./routes/sheet"));
 app.listen(3000, () => {
     console.log("Server is running on port 3000");
 });

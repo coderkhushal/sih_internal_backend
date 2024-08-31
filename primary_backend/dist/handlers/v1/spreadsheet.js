@@ -42,11 +42,14 @@ const handleCreateSpreadsheet = (req, res) => __awaiter(void 0, void 0, void 0, 
                     ]
                 }
             },
+            include: {
+                sheets: true
+            }
         });
         if (!spreadsheet) {
             return res.status(500).json({ msg: "Internal Server Error" });
         }
-        res.json({ success: true, message: "Created Successfully" });
+        res.json({ success: true, message: "Created Successfully", sheetId: spreadsheet.sheets[0].id });
     }
     catch (er) {
         console.log(er);
