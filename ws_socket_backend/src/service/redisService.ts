@@ -1,22 +1,25 @@
+require("dotenv").config()
 import { Redis } from "ioredis";
+const sub = new Redis(process.env.REDIS_URL!.toString());
+const pub = new Redis(process.env.REDIS_URL!.toString());
+async function main(){
 
-export class RedisService {
-    public static Instance : RedisService;
-    redisClient : any
-    private constructor(){
-        this.redisClient = new Redis(process.env.REDIS_URL!.toString())
-        this.redisClient.on('connect',()=>{
-            console.log("Redis Connected")
-        }
-    )
+  await sub.set("hello", "world")
+  await sub.subscribe("abc", (err, count)=>{
+    if(err){
+      console.log(err)
     }
-    public static getInstance(): RedisService {
-        if (!RedisService.Instance) {
-            RedisService.Instance = new RedisService();
-        }
+    console.log(count)
+  })
+  sub.on("message", (channel, message)=>{
+    console.log(channel, message)
+  })
 
-        return RedisService.Instance;
-    }
-    
+
+
 
 }
+main()
+
+
+  // because it's not in the subscriber mode.

@@ -1,19 +1,31 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RedisService = void 0;
+require("dotenv").config();
 const ioredis_1 = require("ioredis");
-class RedisService {
-    constructor() {
-        this.redisClient = new ioredis_1.Redis(process.env.REDIS_URL.toString());
-        this.redisClient.on('connect', () => {
-            console.log("Redis Connected");
+const sub = new ioredis_1.Redis(process.env.REDIS_URL.toString());
+const pub = new ioredis_1.Redis(process.env.REDIS_URL.toString());
+function main() {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield sub.set("hello", "world");
+        yield sub.subscribe("abc", (err, count) => {
+            if (err) {
+                console.log(err);
+            }
+            console.log(count);
         });
-    }
-    static getInstance() {
-        if (!RedisService.Instance) {
-            RedisService.Instance = new RedisService();
-        }
-        return RedisService.Instance;
-    }
+        sub.on("message", (channel, message) => {
+            console.log(channel, message);
+        });
+    });
 }
-exports.RedisService = RedisService;
+main();
+// because it's not in the subscriber mode.

@@ -1,11 +1,16 @@
 import { Server } from "socket.io";
 import { InStateData, Indata } from "../types";
-
+import { Redis } from "ioredis";
+require("dotenv").config()
 export class socketService {
     private static instance: socketService;
     private socket: any;
     private Subscriptions: Map<string, string[]> = new Map()
     private reverseSubscriptions: Map<string, string[]> = new Map()
+    private redisSubscriber = new Redis(process.env.REDIS_URL!.toString())
+    private redisPublisher = new Redis(process.env.REDIS_URL!.toString())
+    private RedisBuffer: {type : "SUBSCRIBE"| "UNSUBSCRIBE", channel :string}[] = [] 
+    private isRedisConnected= false
     private _io = new Server({
         cors: {
             origin: "*",
@@ -13,9 +18,15 @@ export class socketService {
         }
     })
     private constructor() {
-
+        
+        this.connectToRedis()
     }
-
+    async connectToRedis(){
+        await this.redisPublisher.get("hello")
+        await this.redisSubscriber.get("hello")
+        console.log("redis connected")
+        this.isRedisConnected = true
+    }
     get io() {
         return this._io
     }
@@ -29,15 +40,24 @@ export class socketService {
     public initlisteners() {
 
         this.io.on('connection', (socket) => {
-            console.log('a user connected');
+            
             socket.on("SUBSCRIBE", (data:string) => {
                 this.subscribe(socket.id, data)
             })
             socket.on("UNSUBSCRIBE", (data: string) => {
                 this.unsubscribe(socket.id, data)
             })
-            socket.on("STATE", (data:string)=>{
-                this.handlestatechange(socket.id, data)
+            socket.on("STATE", async (d:string)=>{
+                // this.handlestatechange(socket.id, data)
+                try{
+
+                    const data= JSON.parse(d)
+                    
+                    await this.redisPublisher.publish(data.SpreadSheetId, JSON.stringify({data:data.data, SpreadSheetId:data.SpreadSheetId}))
+                }
+                catch(er){
+                    console.log(er)
+                }
             })
             socket.on('disconnect', () => {
                 console.log('user disconnected');
@@ -48,7 +68,7 @@ export class socketService {
         return this.socket;
     }
 
-    private subscribe(socketId: string,d: string) {
+    private async subscribe(socketId: string,d: string) {
 
         try {
             const data: Indata = JSON.parse(d)
@@ -63,7 +83,6 @@ export class socketService {
             if (this.Subscriptions.get(socketId)?.includes(data.SpreadSheetId)) {
                 return
             }
-    console.log("subscribed")            
 
 
             this.Subscriptions.set(socketId, [...(this.Subscriptions.get(socketId) || []), data.SpreadSheetId])
@@ -72,6 +91,18 @@ export class socketService {
             if (this.reverseSubscriptions.get(data.SpreadSheetId)?.length == 1) {
                 
                 console.log("subscribe to redis for " + data.SpreadSheetId)
+                if(this.isRedisConnected) {
+                    await this.redisSubscriber.subscribe(data.SpreadSheetId)
+                    this.redisSubscriber.on("message", (channel: string, data: string, )=>{
+                    this.handlestatechange(channel, data) 
+                        
+
+                    })
+
+                }
+                else{
+                    this.RedisBuffer.push({type:"SUBSCRIBE", channel:data.SpreadSheetId})
+                }
             }
 
         }
@@ -101,6 +132,7 @@ export class socketService {
                 if (this.reverseSubscriptions.get(data.SpreadSheetId)?.length === 0) {
                     // if no user is subscribed to spreadsheetId , then unsubscribe from redis channel
                     this.reverseSubscriptions.delete(data.SpreadSheetId);
+                    this.redisSubscriber.unsubscribe(data.SpreadSheetId)
                     console.log("unsubscribe to redis for " + data.SpreadSheetId)
                 }
             }
@@ -110,23 +142,30 @@ export class socketService {
         }
 
     }
-   private handlestatechange(socketId : string,d: string){
-    const data :InStateData = JSON.parse(d)
+   private handlestatechange( channel : string, d: string){
     
-
+    try{
+        console.log( d)
+        const data :InStateData = JSON.parse(d)
+        
+        
 
         console.log("pushed to redis queue")
         let isPushed = true
         if (isPushed ){
             const subscribers = this.reverseSubscriptions.get(data.SpreadSheetId)
-            console.log(subscribers)
+
             if (subscribers){
                 subscribers.forEach(subscriber=>{
-                    if(subscriber != socketId)
+                    
                     this.io.to(subscriber).emit("STATE",data)
                 })
             }
         }
  
+    }
+    catch(err){
+        console.log(err)
+    }
    } 
 }
