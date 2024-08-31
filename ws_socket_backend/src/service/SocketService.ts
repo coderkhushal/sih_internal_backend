@@ -7,10 +7,10 @@ export class socketService {
     private socket: any;
     private Subscriptions: Map<string, string[]> = new Map()
     private reverseSubscriptions: Map<string, string[]> = new Map()
-    private redisSubscriber = new Redis(process.env.REDIS_URL!.toString())
-    private redisPublisher = new Redis(process.env.REDIS_URL!.toString())
-    private RedisBuffer: {type : "SUBSCRIBE"| "UNSUBSCRIBE", channel :string}[] = [] 
-    private isRedisConnected= false
+    private redisSubscriber: Redis
+    private redisPublisher: Redis
+    private RedisBuffer: { type: "SUBSCRIBE" | "UNSUBSCRIBE", channel: string }[] = []
+    private isRedisConnected = false
     private _io = new Server({
         cors: {
             origin: "*",
@@ -18,10 +18,21 @@ export class socketService {
         }
     })
     private constructor() {
-        
+
+        this.redisSubscriber = new Redis(process.env.REDIS_URL!.toString(), { keepAlive: 800000 })
+
+        this.redisPublisher = new Redis(process.env.REDIS_URL!.toString(), { keepAlive: 800000 })
         this.connectToRedis()
     }
-    async connectToRedis(){
+    async connectToRedis() {
+        if (this.redisSubscriber.status == "close" || this.redisSubscriber.status == "end" || !this.redisSubscriber) {
+
+            this.redisSubscriber = new Redis(process.env.REDIS_URL!.toString(), { keepAlive: 800000 })
+        }
+        if (!this.redisPublisher || this.redisPublisher.status=="end" || this.redisPublisher.status == "close") {
+            this.redisPublisher = new Redis(process.env.REDIS_URL!.toString(), { keepAlive: 800000 })
+        }
+
         await this.redisPublisher.get("hello")
         await this.redisSubscriber.get("hello")
         console.log("redis connected")
@@ -40,22 +51,22 @@ export class socketService {
     public initlisteners() {
 
         this.io.on('connection', (socket) => {
-            
-            socket.on("SUBSCRIBE", (data:string) => {
+
+            socket.on("SUBSCRIBE", (data: string) => {
                 this.subscribe(socket.id, data)
             })
             socket.on("UNSUBSCRIBE", (data: string) => {
                 this.unsubscribe(socket.id, data)
             })
-            socket.on("STATE", async (d:string)=>{
+            socket.on("STATE", async (d: string) => {
                 // this.handlestatechange(socket.id, data)
-                try{
+                try {
 
-                    const data= JSON.parse(d)
-                    
-                    await this.redisPublisher.publish(data.SpreadSheetId, JSON.stringify({data:data.data, SpreadSheetId:data.SpreadSheetId}))
+                    const data = JSON.parse(d)
+
+                    await this.redisPublisher.publish(data.SpreadSheetId, JSON.stringify(data))
                 }
-                catch(er){
+                catch (er) {
                     console.log(er)
                 }
             })
@@ -67,16 +78,20 @@ export class socketService {
     public getSocket() {
         return this.socket;
     }
-
-    private async subscribe(socketId: string,d: string) {
+    public refreshRedisConnection() {
+        this.redisPublisher.disconnect()
+        this.redisSubscriber.disconnect()
+        this.connectToRedis()
+    }
+    private async subscribe(socketId: string, d: string) {
 
         try {
             const data: Indata = JSON.parse(d)
-            
-            
+
+
 
             if (!data.SpreadSheetId) {
-                
+
                 return
             }
 
@@ -89,19 +104,19 @@ export class socketService {
 
             this.reverseSubscriptions.set(data.SpreadSheetId, [...(this.reverseSubscriptions.get(data.SpreadSheetId) || []), socketId])
             if (this.reverseSubscriptions.get(data.SpreadSheetId)?.length == 1) {
-                
+
                 console.log("subscribe to redis for " + data.SpreadSheetId)
-                if(this.isRedisConnected) {
+                if (this.isRedisConnected) {
                     await this.redisSubscriber.subscribe(data.SpreadSheetId)
-                    this.redisSubscriber.on("message", (channel: string, data: string, )=>{
-                    this.handlestatechange(channel, data) 
-                        
+                    this.redisSubscriber.on("message", (channel: string, data: string,) => {
+                        this.handlestatechange(channel, data)
+
 
                     })
 
                 }
-                else{
-                    this.RedisBuffer.push({type:"SUBSCRIBE", channel:data.SpreadSheetId})
+                else {
+                    this.RedisBuffer.push({ type: "SUBSCRIBE", channel: data.SpreadSheetId })
                 }
             }
 
@@ -111,7 +126,7 @@ export class socketService {
         }
     }
 
-    private unsubscribe(socketId: string, d : string) {
+    private unsubscribe(socketId: string, d: string) {
         try {
 
             const data: Indata = JSON.parse(d)
@@ -142,34 +157,34 @@ export class socketService {
         }
 
     }
-   private async handlestatechange( channel : string, d: string){
-    
-    try{
-        console.log( d)
-        const data :InStateData = JSON.parse(d)
-        
-        
-        await this.pushToRedisQueue("STATE", JSON.stringify(data))
-        console.log("pushed to redis queue")
-        let isPushed = true
-        if (isPushed ){
-            const subscribers = this.reverseSubscriptions.get(data.SpreadSheetId)
+    private async handlestatechange(channel: string, d: string) {
 
-            if (subscribers){
-                subscribers.forEach(subscriber=>{
-                    
-                    this.io.to(subscriber).emit("STATE",data)
-                })
+        try {
+            console.log(d)
+            const data: InStateData = JSON.parse(d)
+
+
+            await this.pushToRedisQueue("STATE", JSON.stringify(data))
+            console.log("pushed to redis queue")
+            let isPushed = true
+            if (isPushed) {
+                const subscribers = this.reverseSubscriptions.get(data.SpreadSheetId)
+
+                if (subscribers) {
+                    subscribers.forEach(subscriber => {
+
+                        this.io.to(subscriber).emit("STATE", data)
+                    })
+                }
             }
+
         }
- 
+        catch (err) {
+            console.log(err)
+        }
     }
-    catch(err){
-        console.log(err)
+    private async pushToRedisQueue(queue: string, data: string) {
+        await this.redisPublisher.lpush(queue, data)
+
     }
-   } 
-private async pushToRedisQueue(queue : string, data : string){
-   await this.redisPublisher.lpush(queue, data) 
-   
-}
 }

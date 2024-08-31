@@ -30,7 +30,7 @@ let isRunning = false;
 app.get('/', (req, res) => {
     if (isRunning) {
         res.send('Redis Queue Pulling Server restarting');
-        RedisService_1.RedisService.getInstance().restartPulling();
+        RedisService_1.RedisService.getInstance().ConnectToRedis();
     }
     else {
         res.send('Redis Queue Pulling Server starting!');

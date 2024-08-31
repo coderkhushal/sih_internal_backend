@@ -9,9 +9,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.handleGetSpreadsheets = exports.handleCreateSpreadsheet = void 0;
-const client_1 = require("@prisma/client");
-let prisma = new client_1.PrismaClient();
+exports.handleGetSpreadSheetCollaborators = exports.handleGetSpreadsheets = exports.handleCreateSpreadsheet = void 0;
+const DbManager_1 = require("../../utils/DbManager");
+let prisma = DbManager_1.DbManager.getInstance().getClient();
 const handleCreateSpreadsheet = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         let { title } = req.body;
@@ -22,8 +22,26 @@ const handleCreateSpreadsheet = (req, res) => __awaiter(void 0, void 0, void 0, 
         let spreadsheet = yield prisma.spreadsheet.create({
             data: {
                 title: title,
-                ownerId: req.body.user.id
-            }
+                ownerId: req.body.user.id,
+                sheets: {
+                    create: {
+                        name: "Sheet1",
+                        state: {}
+                    }
+                },
+                collaborators: {
+                    create: [
+                        {
+                            user: {
+                                connect: {
+                                    id: req.body.user.id
+                                }
+                            },
+                            editPermissions: true
+                        }
+                    ]
+                }
+            },
         });
         if (!spreadsheet) {
             return res.status(500).json({ msg: "Internal Server Error" });
@@ -56,3 +74,35 @@ const handleGetSpreadsheets = (req, res) => __awaiter(void 0, void 0, void 0, fu
     }
 });
 exports.handleGetSpreadsheets = handleGetSpreadsheets;
+const handleGetSpreadSheetCollaborators = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        let SpreadSheetId = req.query.SpreadSheetId;
+        if (!SpreadSheetId) {
+            return res.status(400).json({ message: "SpreadSheetId is required" });
+        }
+        let spreadsheet = yield prisma.spreadsheet.findUnique({
+            where: {
+                id: Number.parseInt(SpreadSheetId.toString())
+            },
+            include: {
+                collaborators: {
+                    include: {
+                        user: {
+                            select: {
+                                email: true,
+                                name: true,
+                                id: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        res.json({ success: true, data: spreadsheet === null || spreadsheet === void 0 ? void 0 : spreadsheet.collaborators });
+    }
+    catch (err) {
+        console.log(err);
+        return res.status(500).json({ msg: "Internal Server Error" });
+    }
+});
+exports.handleGetSpreadSheetCollaborators = handleGetSpreadSheetCollaborators;

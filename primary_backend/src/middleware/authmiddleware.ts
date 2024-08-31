@@ -3,16 +3,18 @@ import jwt from "jsonwebtoken"
 import { PrismaClient  } from "@prisma/client";
 let prisma = new PrismaClient()
 export const AuthMiddleware = async(req: Request, res: Response, next: NextFunction)=>{
-    const token = req.headers.authorization?.split(" ")[1];
-    console.log(token)
-    if (!token) {
-        return res.status(401).json({ msg: "Token Not Found" })
-    }
-    let payload: any = jwt.verify(token.toString(), process.env.JWT_SECRET as string);
-    if(!payload){
-        return res.status(401).json({ msg: "Invalid token" });
-    }
-    console.log(payload.id)
+    try{
+
+        const token = req.headers.authorization?.split(" ")[1];
+ 
+        if (!token) {
+            return res.status(401).json({ msg: "Token Not Found" })
+        }
+        let payload: any = jwt.verify(token.toString(), process.env.JWT_SECRET as string);
+        if(!payload){
+            return res.status(401).json({ msg: "Invalid token" });
+        }
+ 
     let user = await prisma.user.findUnique({
         where: {
             id: payload.id
@@ -23,5 +25,10 @@ export const AuthMiddleware = async(req: Request, res: Response, next: NextFunct
     }
     req.body.user = user
     next()
+}
+catch(err){
+    console.log(err)
+    return res.status(500).json({ msg: "Token expired or malformed" })
+}
 
 }

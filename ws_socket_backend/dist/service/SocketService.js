@@ -17,8 +17,6 @@ class socketService {
     constructor() {
         this.Subscriptions = new Map();
         this.reverseSubscriptions = new Map();
-        this.redisSubscriber = new ioredis_1.Redis(process.env.REDIS_URL.toString());
-        this.redisPublisher = new ioredis_1.Redis(process.env.REDIS_URL.toString());
         this.RedisBuffer = [];
         this.isRedisConnected = false;
         this._io = new socket_io_1.Server({
@@ -27,10 +25,18 @@ class socketService {
                 methods: ["*"]
             }
         });
+        this.redisSubscriber = new ioredis_1.Redis(process.env.REDIS_URL.toString(), { keepAlive: 800000 });
+        this.redisPublisher = new ioredis_1.Redis(process.env.REDIS_URL.toString(), { keepAlive: 800000 });
         this.connectToRedis();
     }
     connectToRedis() {
         return __awaiter(this, void 0, void 0, function* () {
+            if (this.redisSubscriber.status == "close") {
+                this.redisSubscriber = new ioredis_1.Redis(process.env.REDIS_URL.toString(), { keepAlive: 800000 });
+            }
+            if (this.redisPublisher.status == "close") {
+                this.redisPublisher = new ioredis_1.Redis(process.env.REDIS_URL.toString(), { keepAlive: 800000 });
+            }
             yield this.redisPublisher.get("hello");
             yield this.redisSubscriber.get("hello");
             console.log("redis connected");
@@ -58,7 +64,7 @@ class socketService {
                 // this.handlestatechange(socket.id, data)
                 try {
                     const data = JSON.parse(d);
-                    yield this.redisPublisher.publish(data.SpreadSheetId, JSON.stringify({ data: data.data, SpreadSheetId: data.SpreadSheetId }));
+                    yield this.redisPublisher.publish(data.SpreadSheetId, JSON.stringify(data));
                 }
                 catch (er) {
                     console.log(er);
@@ -71,6 +77,11 @@ class socketService {
     }
     getSocket() {
         return this.socket;
+    }
+    refreshRedisConnection() {
+        this.redisPublisher.disconnect();
+        this.redisSubscriber.disconnect();
+        this.connectToRedis();
     }
     subscribe(socketId, d) {
         return __awaiter(this, void 0, void 0, function* () {

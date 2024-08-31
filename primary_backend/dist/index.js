@@ -18,6 +18,7 @@ app.use(body_parser_1.default.urlencoded({ extended: true }));
 // app.use(ratelimiter)
 app.use("/auth", require("./routes/auth"));
 app.use("/spreadsheet", require("./routes/spreadsheet"));
+app.use("/collaborators", require("./routes/collaborators"));
 app.listen(3000, () => {
     console.log("Server is running on port 3000");
 });

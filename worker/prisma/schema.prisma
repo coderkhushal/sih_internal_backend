@@ -1,0 +1,60 @@
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User{
+  id Int @id @default(autoincrement())
+  name String
+  email String @unique
+  password String
+  emailVerified Boolean @default(false)
+  resetPasswordToken String?
+  resetPasswordTokenExpiry DateTime?
+  spreadsheets Spreadsheet[] 
+  collborations Collaborator[]
+}
+model Spreadsheet {
+  id        Int          @id @default(autoincrement())
+  title     String
+  ownerId   Int
+  owner     User         @relation(fields: [ownerId], references: [id])
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  sheets    Sheet[]
+  collaborators Collaborator[]
+
+  
+}
+
+
+model Sheet {
+  id            Int          @id @default(autoincrement())
+  spreadsheetId Int
+  spreadsheet   Spreadsheet   @relation(fields: [spreadsheetId], references: [id])
+  name          String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  state         Json
+}
+
+model Collaborator {
+  id            Int          @id @default(autoincrement())
+  spreadsheetId Int
+  spreadsheet   Spreadsheet   @relation(fields: [spreadsheetId], references: [id])
+  userId        Int
+  user          User          @relation(fields: [userId], references: [id])
+  editPermissions Boolean
+  createdAt     DateTime      @default(now())
+}

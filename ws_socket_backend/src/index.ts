@@ -8,7 +8,10 @@ import cors from "cors"
 //making httpserver and socket server
 const app = express();
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+  allowedHeaders:["*"],
+  origin:"*"
+}))
 const server = http.createServer(app);
 socketService.getInstance().io.attach(server)
 //initialising listeners
@@ -16,6 +19,7 @@ socketService.getInstance().initlisteners()
 
 //handling routes
 app.get("/health",(req: Request,res: Response)=>{
+  socketService.getInstance().refreshRedisConnection()
   res.json({"status":"healthy"})
 })
 server.listen(port, () => {

@@ -3,7 +3,9 @@ export type Indata = {
 }
 
 export type InStateData= {
-    state : string[][] 
+    State : string[][] 
+    SheetId: string
+    UserId: string
     SpreadSheetId : string
     
 }

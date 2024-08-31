@@ -18,6 +18,7 @@ SocketService_1.socketService.getInstance().io.attach(server);
 SocketService_1.socketService.getInstance().initlisteners();
 //handling routes
 app.get("/health", (req, res) => {
+    SocketService_1.socketService.getInstance().refreshRedisConnection();
     res.json({ "status": "healthy" });
 });
 server.listen(port, () => {

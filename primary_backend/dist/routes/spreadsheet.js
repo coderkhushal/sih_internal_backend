@@ -10,4 +10,6 @@ const router = express_1.default.Router();
 router.post("/create", authmiddleware_1.AuthMiddleware, spreadsheet_1.handleCreateSpreadsheet);
 // handle query on get request
 router.get("/", authmiddleware_1.AuthMiddleware, spreadsheet_1.handleGetSpreadsheets);
+router.get("/collaborators", authmiddleware_1.AuthMiddleware, spreadsheet_1.handleGetSpreadSheetCollaborators);
+// router.get("/sheets", AuthMiddleware, handleGetSpreadsheetSheets)
 module.exports = router;

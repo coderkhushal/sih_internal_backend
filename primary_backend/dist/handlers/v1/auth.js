@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.handleResetPasswordVerifyToken = exports.handleLogin = exports.handlesignup = void 0;
+exports.handleGetUser = exports.handleResetPasswordVerifyToken = exports.handleLogin = exports.handlesignup = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const client_1 = require("@prisma/client");
@@ -150,3 +150,18 @@ const handleResetPasswordVerifyToken = (req, res) => __awaiter(void 0, void 0, v
     }
 });
 exports.handleResetPasswordVerifyToken = handleResetPasswordVerifyToken;
+const handleGetUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        if (req.body.user) {
+            return res.json({ success: true, user: req.body.user });
+        }
+        else {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+    }
+    catch (er) {
+        console.log(er);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+});
+exports.handleGetUser = handleGetUser;

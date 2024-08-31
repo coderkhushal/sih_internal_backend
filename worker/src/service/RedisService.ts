@@ -2,10 +2,18 @@ import { Redis } from "ioredis";
 
 export class RedisService {
     private static instance: RedisService;
+    private redisClient : Redis
     private isRedisConnected =false
-    private redisClient = new Redis(process.env.REDIS_URL!.toString())
     private constructor(){
+
+        this.redisClient= new Redis(process.env.REDIS_URL!.toString(), { keepAlive: 800000})
         this.ConnectToRedis()
+
+    this.redisClient.on("close", ()=>{
+        console.log("closing")
+        this.isRedisConnected = false
+        this.ConnectToRedis()
+    })
     }
     public static getInstance(): RedisService{
         if(!RedisService.instance){
@@ -14,7 +22,10 @@ export class RedisService {
         return RedisService.instance
     }
 
- private async ConnectToRedis(){
+ public  async ConnectToRedis(){
+    if(this.redisClient==undefined || this.redisClient.status == "close"){
+        this.redisClient= new Redis(process.env.REDIS_URL!.toString(), { keepAlive: 800000})
+    }
      await this.redisClient.get("hello")
      this.isRedisConnected = true 
  }
@@ -42,10 +53,6 @@ export class RedisService {
     }
 
     }
-    public async restartPulling(){
-        this.redisClient.disconnect()
-        this.isRedisConnected = false
-        this.PopFromQueue("STATE")
-    }
+
 
 }

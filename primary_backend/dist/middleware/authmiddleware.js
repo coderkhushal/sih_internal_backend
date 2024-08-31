@@ -18,25 +18,29 @@ const client_1 = require("@prisma/client");
 let prisma = new client_1.PrismaClient();
 const AuthMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(" ")[1];
-    console.log(token);
-    if (!token) {
-        return res.status(401).json({ msg: "Token Not Found" });
-    }
-    let payload = jsonwebtoken_1.default.verify(token.toString(), process.env.JWT_SECRET);
-    if (!payload) {
-        return res.status(401).json({ msg: "Invalid token" });
-    }
-    console.log(payload.id);
-    let user = yield prisma.user.findUnique({
-        where: {
-            id: payload.id
+    try {
+        const token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(" ")[1];
+        if (!token) {
+            return res.status(401).json({ msg: "Token Not Found" });
         }
-    });
-    if (!user) {
-        return res.status(401).json({ msg: "Unauthorized" });
+        let payload = jsonwebtoken_1.default.verify(token.toString(), process.env.JWT_SECRET);
+        if (!payload) {
+            return res.status(401).json({ msg: "Invalid token" });
+        }
+        let user = yield prisma.user.findUnique({
+            where: {
+                id: payload.id
+            }
+        });
+        if (!user) {
+            return res.status(401).json({ msg: "Unauthorized" });
+        }
+        req.body.user = user;
+        next();
     }
-    req.body.user = user;
-    next();
+    catch (err) {
+        console.log(err);
+        return res.status(500).json({ msg: "Token expired or malformed" });
+    }
 });
 exports.AuthMiddleware = AuthMiddleware;
