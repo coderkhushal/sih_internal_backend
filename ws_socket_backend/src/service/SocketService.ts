@@ -19,19 +19,19 @@ export class socketService {
     })
     private constructor() {
 
-        this.redisSubscriber = new Redis(process.env.REDIS_URL!.toString()),
-        this.redisPublisher = new Redis(process.env.REDIS_URL!.toString())
+        this.redisSubscriber = new Redis(process.env.REDIS_URL!.toString(), {retryStrategy(){return 10}}),
+        this.redisPublisher = new Redis(process.env.REDIS_URL!.toString(), {retryStrategy(){return 10}})
+
         this.connectToRedis()
     }
     async connectToRedis() {
         if (this.redisSubscriber.status == "close" || this.redisSubscriber.status == "end" || !this.redisSubscriber) {
 
-            this.redisSubscriber = new Redis(process.env.REDIS_URL!.toString()) 
+            this.redisSubscriber = new Redis(process.env.REDIS_URL!.toString(), {retryStrategy(){return 10}})    
         }
         if (!this.redisPublisher || this.redisPublisher.status=="end" || this.redisPublisher.status == "close") {
-            this.redisPublisher = new Redis(process.env.REDIS_URL!.toString(), { keepAlive: 800000 })
+            this.redisPublisher = new Redis(process.env.REDIS_URL!.toString(), {retryStrategy(){return 10}})
         }
-
         await this.redisPublisher.get("hello")
         await this.redisSubscriber.get("hello")
         console.log("redis connected")
