@@ -43,8 +43,11 @@ class RedisService {
             yield this.ConnectToRedis();
             while (this.isRedisConnected) {
                 try {
-                    let result = yield this.redisClient.brpop(queueName, 0);
-                    console.log(result);
+                    let result = yield this.redisClient.brpop(queueName, 5);
+                    if (result) {
+                        let data = JSON.parse(result[1]);
+                        console.log(data);
+                    }
                 }
                 catch (er) {
                     console.log(er);

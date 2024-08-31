@@ -38,9 +38,12 @@ export class RedisService {
         while(this.isRedisConnected ){
             try{
 
-                let result = await this.redisClient.brpop(queueName, 0)
-                
-                console.log(result)
+                let result: string[] | null = await this.redisClient.brpop(queueName, 5)
+                if(result){
+
+                    let data = JSON.parse(result[1])
+                    console.log(data)
+                }
             }
             catch(er){
             console.log(er)

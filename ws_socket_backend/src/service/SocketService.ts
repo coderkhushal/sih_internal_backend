@@ -19,15 +19,14 @@ export class socketService {
     })
     private constructor() {
 
-        this.redisSubscriber = new Redis(process.env.REDIS_URL!.toString(), { keepAlive: 800000 })
-
-        this.redisPublisher = new Redis(process.env.REDIS_URL!.toString(), { keepAlive: 800000 })
+        this.redisSubscriber = new Redis(process.env.REDIS_URL!.toString()),
+        this.redisPublisher = new Redis(process.env.REDIS_URL!.toString())
         this.connectToRedis()
     }
     async connectToRedis() {
         if (this.redisSubscriber.status == "close" || this.redisSubscriber.status == "end" || !this.redisSubscriber) {
 
-            this.redisSubscriber = new Redis(process.env.REDIS_URL!.toString(), { keepAlive: 800000 })
+            this.redisSubscriber = new Redis(process.env.REDIS_URL!.toString()) 
         }
         if (!this.redisPublisher || this.redisPublisher.status=="end" || this.redisPublisher.status == "close") {
             this.redisPublisher = new Redis(process.env.REDIS_URL!.toString(), { keepAlive: 800000 })
