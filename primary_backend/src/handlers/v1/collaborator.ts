@@ -2,8 +2,10 @@ import { Request, Response } from "express";
 import { DbManager } from "../../utils/DbManager";
 const prisma = DbManager.getInstance().getClient()
 export const handleCreateCollaborator = async (req: Request, res: Response) => {
-    const {SpreadSheetID, email} = req.query
-    if(!SpreadSheetID ){
+    try{
+
+        const {SpreadSheetID, email} = req.query
+        if(!SpreadSheetID ){
         return res.status(400).json({
             message: "spreadsheetId is required"
         })
@@ -31,6 +33,11 @@ export const handleCreateCollaborator = async (req: Request, res: Response) => {
         }
         
     })
+}
+catch(err){
+    console.log(err)
+    return res.status(500).json({message: "Internal Server Error"})
+}
 
     res.json({success:true, message: "Created Successfully"})
 }

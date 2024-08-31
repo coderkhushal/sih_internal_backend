@@ -43,8 +43,8 @@ export class RedisService {
                 if (result) {
 
                     let data = JSON.parse(result[1])
-                    console.log(data)
-                    DbManager.getInstance().UpdateSpreadSheetData(Number.parseInt(data.SpreadSheetId), Number.parseInt(data.SheetId), Number.parseInt(data.UserId), data.data.data)
+
+                    DbManager.getInstance().UpdateSpreadSheetData(Number.parseInt(data.SpreadSheetId), Number.parseInt(data.SheetId), Number.parseInt(data.UserId), JSON.stringify(data.data))
                 }
             }
             catch (er) {

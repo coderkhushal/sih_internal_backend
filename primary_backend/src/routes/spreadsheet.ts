@@ -8,6 +8,7 @@ router.post("/create", AuthMiddleware,  handleCreateSpreadsheet)
 // handle query on get request
 router.get("/",AuthMiddleware, handleGetSpreadsheets)
 router.get("/collaborators", AuthMiddleware, handleGetSpreadSheetCollaborators)
+
 // router.get("/sheets", AuthMiddleware, handleGetSpreadsheetSheets)
 
 

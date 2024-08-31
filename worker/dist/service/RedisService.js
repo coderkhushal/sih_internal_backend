@@ -46,8 +46,7 @@ class RedisService {
                     let result = yield this.redisClient.brpop(queueName, 5);
                     if (result) {
                         let data = JSON.parse(result[1]);
-                        console.log(data);
-                        db_1.DbManager.getInstance().UpdateSpreadSheetData(Number.parseInt(data.SpreadSheetId), Number.parseInt(data.SheetId), Number.parseInt(data.UserId), data.data.data);
+                        db_1.DbManager.getInstance().UpdateSpreadSheetData(Number.parseInt(data.SpreadSheetId), Number.parseInt(data.SheetId), Number.parseInt(data.UserId), JSON.stringify(data.data));
                     }
                 }
                 catch (er) {

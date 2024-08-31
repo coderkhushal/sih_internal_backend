@@ -72,7 +72,7 @@ class DbManager {
                     id: SheetId
                 },
                 data: {
-                    state: { "data": "hello" }
+                    state: { "data": data }
                 }
             });
             console.log(updatedSheet);
