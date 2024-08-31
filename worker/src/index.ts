@@ -17,7 +17,7 @@ app.use(bodyParser.urlencoded({extended:true}))
 
 // Middleware to handle JSON responses
 let isRunning = false
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res : Response) => {
     if (isRunning){
 
         res.send('Redis Queue Pulling Server restarting');

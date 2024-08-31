@@ -19,14 +19,15 @@ export class DbManager {
     public getClient() {
         return this.dbclient
     }
-    public async UpdateSpreadSheetData(SpreadSheetId: number, sheedId : number, userId:number , data: string){
+    public async UpdateSpreadSheetData(SpreadSheetId: number, SheetId : number, userId:number , data: string){
         // spreadsheet exists or not
         // if spreadsheet.collaborators include userId then only update
         // check if sheet exists or not in spreadsheet
         // update the sheet
+        console.log(SheetId, SpreadSheetId, userId, data)
        let updatedSheet = await  this.dbclient.sheet.updateMany({
         where:{
-            id: sheedId, 
+            id: SheetId, 
             spreadsheetId: SpreadSheetId,
             spreadsheet: {
                 collaborators:{

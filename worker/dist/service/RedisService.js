@@ -11,6 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RedisService = void 0;
 const ioredis_1 = require("ioredis");
+const db_1 = require("../utils/db");
 class RedisService {
     constructor() {
         this.isRedisConnected = false;
@@ -46,6 +47,7 @@ class RedisService {
                     if (result) {
                         let data = JSON.parse(result[1]);
                         console.log(data);
+                        db_1.DbManager.getInstance().UpdateSpreadSheetData(Number.parseInt(data.SpreadSheetId), Number.parseInt(data.SheetId), Number.parseInt(data.UserId), data.data.data);
                     }
                 }
                 catch (er) {

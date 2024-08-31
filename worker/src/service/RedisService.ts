@@ -1,4 +1,5 @@
 import { Redis } from "ioredis";
+import { DbManager } from "../utils/db";
 
 export class RedisService {
     private static instance: RedisService;
@@ -43,6 +44,7 @@ export class RedisService {
 
                     let data = JSON.parse(result[1])
                     console.log(data)
+                    DbManager.getInstance().UpdateSpreadSheetData(Number.parseInt(data.SpreadSheetId), Number.parseInt(data.SheetId), Number.parseInt(data.UserId), data.data.data)
                 }
             }
             catch (er) {

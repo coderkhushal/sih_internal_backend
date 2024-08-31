@@ -25,15 +25,16 @@ class DbManager {
     getClient() {
         return this.dbclient;
     }
-    UpdateSpreadSheetData(SpreadSheetId, sheedId, userId, data) {
+    UpdateSpreadSheetData(SpreadSheetId, SheetId, userId, data) {
         return __awaiter(this, void 0, void 0, function* () {
             // spreadsheet exists or not
             // if spreadsheet.collaborators include userId then only update
             // check if sheet exists or not in spreadsheet
             // update the sheet
+            console.log(SheetId, SpreadSheetId, userId, data);
             let updatedSheet = yield this.dbclient.sheet.updateMany({
                 where: {
-                    id: sheedId,
+                    id: SheetId,
                     spreadsheetId: SpreadSheetId,
                     spreadsheet: {
                         collaborators: {
