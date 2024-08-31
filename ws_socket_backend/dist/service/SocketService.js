@@ -132,23 +132,31 @@ class socketService {
         }
     }
     handlestatechange(channel, d) {
-        try {
-            console.log(d);
-            const data = JSON.parse(d);
-            console.log("pushed to redis queue");
-            let isPushed = true;
-            if (isPushed) {
-                const subscribers = this.reverseSubscriptions.get(data.SpreadSheetId);
-                if (subscribers) {
-                    subscribers.forEach(subscriber => {
-                        this.io.to(subscriber).emit("STATE", data);
-                    });
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                console.log(d);
+                const data = JSON.parse(d);
+                yield this.pushToRedisQueue("STATE", JSON.stringify(data));
+                console.log("pushed to redis queue");
+                let isPushed = true;
+                if (isPushed) {
+                    const subscribers = this.reverseSubscriptions.get(data.SpreadSheetId);
+                    if (subscribers) {
+                        subscribers.forEach(subscriber => {
+                            this.io.to(subscriber).emit("STATE", data);
+                        });
+                    }
                 }
             }
-        }
-        catch (err) {
-            console.log(err);
-        }
+            catch (err) {
+                console.log(err);
+            }
+        });
+    }
+    pushToRedisQueue(queue, data) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.redisPublisher.lpush(queue, data);
+        });
     }
 }
 exports.socketService = socketService;

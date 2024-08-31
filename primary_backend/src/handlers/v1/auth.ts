@@ -152,3 +152,17 @@ export const handleResetPasswordVerifyToken = async (req: Request, res: Response
         return res.status(500).json({message: "Internal Server Error"})
     }
 }
+export const handleGetUser = async (req: Request, res: Response) => {
+    try {
+        if(req.body.user){
+            return res.json({success:true, user: req.body.user})
+        }
+        else{
+            return res.status(401).json({message: "Unauthorized"})
+        }
+    }
+    catch (er) {
+        console.log(er)
+        return res.status(500).json({ message: "Internal Server Error" })
+    }
+}

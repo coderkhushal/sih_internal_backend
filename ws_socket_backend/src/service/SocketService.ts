@@ -142,14 +142,14 @@ export class socketService {
         }
 
     }
-   private handlestatechange( channel : string, d: string){
+   private async handlestatechange( channel : string, d: string){
     
     try{
         console.log( d)
         const data :InStateData = JSON.parse(d)
         
         
-
+        await this.pushToRedisQueue("STATE", JSON.stringify(data))
         console.log("pushed to redis queue")
         let isPushed = true
         if (isPushed ){
@@ -168,4 +168,8 @@ export class socketService {
         console.log(err)
     }
    } 
+private async pushToRedisQueue(queue : string, data : string){
+   await this.redisPublisher.lpush(queue, data) 
+   
+}
 }
