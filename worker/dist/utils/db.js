@@ -25,19 +25,31 @@ class DbManager {
     getClient() {
         return this.dbclient;
     }
-    UpdateSpreadSheetData(spreadsheetId, d) {
+    UpdateSpreadSheetData(SpreadSheetId, sheedId, userId, data) {
         return __awaiter(this, void 0, void 0, function* () {
             // spreadsheet exists or not
             // if spreadsheet.collaborators include userId then only update
             // check if sheet exists or not in spreadsheet
             // update the sheet
-            const data = JSON.parse(d);
-            let spreadsheet = yield this.dbclient.spreadsheet.findUnique({
+            let updatedSheet = yield this.dbclient.sheet.updateMany({
                 where: {
-                    id: Number.parseInt(data.SpreadSheetId)
+                    id: sheedId,
+                    spreadsheetId: SpreadSheetId,
+                    spreadsheet: {
+                        collaborators: {
+                            some: {
+                                userId: userId
+                            }
+                        }
+                    },
+                },
+                data: {
+                    state: data
                 }
             });
-            console.log(spreadsheet);
+            if (updatedSheet.count == 0) {
+                console.log("sheet not found");
+            }
         });
     }
 }

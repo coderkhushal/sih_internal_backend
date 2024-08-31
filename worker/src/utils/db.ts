@@ -19,20 +19,32 @@ export class DbManager {
     public getClient() {
         return this.dbclient
     }
-    public async UpdateSpreadSheetData(spreadsheetId: string, d: string){
+    public async UpdateSpreadSheetData(SpreadSheetId: number, sheedId : number, userId:number , data: string){
         // spreadsheet exists or not
         // if spreadsheet.collaborators include userId then only update
         // check if sheet exists or not in spreadsheet
         // update the sheet
-        const data: StateData= JSON.parse(d)
-        let spreadsheet = await this.dbclient.spreadsheet.findUnique({
-            where:{
-                id:Number.parseInt(data.SpreadSheetId)
+       let updatedSheet = await  this.dbclient.sheet.updateMany({
+        where:{
+            id: sheedId, 
+            spreadsheetId: SpreadSheetId,
+            spreadsheet: {
+                collaborators:{
+                    some:{
+                        userId: userId
+                    }
+                }
+            },
+
+        },
+
+            data:{
+                state: data
             }
-
-        })
-        console.log(spreadsheet)
-
+       })
+       if(updatedSheet.count == 0){
+            console.log("sheet not found")
+       }
 
 
     }

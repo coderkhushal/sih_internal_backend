@@ -14,10 +14,9 @@ const ioredis_1 = require("ioredis");
 class RedisService {
     constructor() {
         this.isRedisConnected = false;
-        this.redisClient = new ioredis_1.Redis(process.env.REDIS_URL.toString(), { keepAlive: 800000 });
+        this.redisClient = new ioredis_1.Redis(process.env.REDIS_URL.toString(), { retryStrategy() { return 10; } });
         this.ConnectToRedis();
         this.redisClient.on("close", () => {
-            console.log("closing");
             this.isRedisConnected = false;
             this.ConnectToRedis();
         });
@@ -31,7 +30,7 @@ class RedisService {
     ConnectToRedis() {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.redisClient == undefined || this.redisClient.status == "close") {
-                this.redisClient = new ioredis_1.Redis(process.env.REDIS_URL.toString(), { keepAlive: 800000 });
+                this.redisClient = new ioredis_1.Redis(process.env.REDIS_URL.toString());
             }
             yield this.redisClient.get("hello");
             this.isRedisConnected = true;
