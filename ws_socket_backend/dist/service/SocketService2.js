@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SocketService2 = void 0;
 require('dotenv').config();
-const redis_1 = require("redis");
+const ioredis_1 = require("ioredis");
 const socket_io_1 = require("socket.io");
 class SocketService2 {
     constructor() {
@@ -23,8 +23,16 @@ class SocketService2 {
                 methods: ["*"]
             }
         });
-        this.redisSubscriber = (0, redis_1.createClient)({ url: process.env.REDIS_URL.toString() });
-        this.redisPublisher = (0, redis_1.createClient)({ url: process.env.REDIS_URL.toString() });
+        this.redisSubscriber = new ioredis_1.Redis(process.env.REDIS_URL.toString(), {
+            retryStrategy(times) {
+                return Math.min(times * 50, 2000);
+            }
+        });
+        this.redisPublisher = new ioredis_1.Redis(process.env.REDIS_URL.toString(), {
+            retryStrategy(times) {
+                return Math.min(times * 50, 2000);
+            }
+        });
         this.setupRedisListeners();
         this.connectToRedis();
     }
@@ -77,8 +85,20 @@ class SocketService2 {
     connectToRedis() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                yield this.redisPublisher.connect();
-                yield this.redisSubscriber.connect();
+                if (this.redisSubscriber.status === "close" || this.redisSubscriber.status === "end") {
+                    this.redisSubscriber = new ioredis_1.Redis(process.env.REDIS_URL.toString(), {
+                        retryStrategy(times) {
+                            return Math.min(times * 50, 2000);
+                        }
+                    });
+                }
+                if (this.redisPublisher.status === "close" || this.redisPublisher.status === "end") {
+                    this.redisPublisher = new ioredis_1.Redis(process.env.REDIS_URL.toString(), {
+                        retryStrategy(times) {
+                            return Math.min(times * 50, 2000);
+                        }
+                    });
+                }
                 yield Promise.all([this.redisPublisher.get("hello"), this.redisSubscriber.get("hello")]);
                 console.log("Redis connected");
                 this.isRedisConnected = true;
@@ -120,14 +140,14 @@ class SocketService2 {
     }
     pushToRedisQueue(queue, data) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.redisPublisher.lPush(queue, data);
+            yield this.redisPublisher.lpush(queue, data);
         });
     }
     processRedisBuffer() {
         while (this.RedisBuffer.length > 0) {
             const item = this.RedisBuffer.shift();
             if ((item === null || item === void 0 ? void 0 : item.type) === "SUBSCRIBE") {
-                this.redisSubscriber.subscribe(item.channel, (message, channel) => { console.log(message, channel); });
+                this.redisSubscriber.subscribe(item.channel);
             }
             else if ((item === null || item === void 0 ? void 0 : item.type) === "UNSUBSCRIBE") {
                 this.redisSubscriber.unsubscribe(item.channel);
@@ -144,7 +164,9 @@ class SocketService2 {
                 socket.join(data.SpreadSheetId);
                 // if room has a new user, subscribe to redis
                 if (((_a = this.io.sockets.adapter.rooms.get(data.SpreadSheetId)) === null || _a === void 0 ? void 0 : _a.size) == 1) {
-                    this.redisSubscriber.subscribe(data.SpreadSheetId, this.handleRedisMessage);
+                    this.redisSubscriber.subscribe(data.SpreadSheetId);
+                    console.log("subscribed to redis for " + data.SpreadSheetId);
+                    this.redisSubscriber.on("message", this.handleRedisMessage);
                 }
             }
             catch (err) {
@@ -170,12 +192,12 @@ class SocketService2 {
             }
         });
     }
-    handleRedisMessage(d, channel) {
+    handleRedisMessage(channel, d) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 console.log(d);
                 const data = JSON.parse(d);
-                yield SocketService2.getInstance().redisPublisher.lPush("STATE", JSON.stringify(data));
+                SocketService2.getInstance().redisPublisher.lpush("STATE", JSON.stringify(data));
                 SocketService2.getInstance().io.to(data.SpreadSheetId).emit("STATE", data);
             }
             catch (err) {
