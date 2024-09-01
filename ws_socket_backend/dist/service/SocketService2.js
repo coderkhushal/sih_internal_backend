@@ -9,17 +9,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.socketService = void 0;
-const socket_io_1 = require("socket.io");
+exports.SocketService2 = void 0;
+require('dotenv').config();
 const ioredis_1 = require("ioredis");
-require("dotenv").config();
-class socketService {
+const socket_io_1 = require("socket.io");
+class SocketService2 {
     constructor() {
-        this.Subscriptions = new Map();
-        this.reverseSubscriptions = new Map();
         this.RedisBuffer = [];
         this.isRedisConnected = false;
-        this._io = new socket_io_1.Server({
+        this.io = new socket_io_1.Server({
             cors: {
                 origin: "*",
                 methods: ["*"]
@@ -78,6 +76,12 @@ class socketService {
             console.log(`Redis Publisher reconnecting in ${time} ms`);
         });
     }
+    refreshRedisConnection() {
+        console.log("Refreshing Redis connections...");
+        this.redisPublisher.disconnect();
+        this.redisSubscriber.disconnect();
+        setTimeout(() => this.connectToRedis(), 1000); // Delay reconnection attempts slightly
+    }
     connectToRedis() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -106,22 +110,19 @@ class socketService {
             }
         });
     }
-    get io() {
-        return this._io;
-    }
     static getInstance() {
-        if (!socketService.instance) {
-            socketService.instance = new socketService();
+        if (!SocketService2.instance) {
+            SocketService2.instance = new SocketService2();
         }
-        return socketService.instance;
+        return SocketService2.instance;
     }
     initlisteners() {
         this.io.on('connection', (socket) => {
             socket.on("SUBSCRIBE", (data) => {
-                this.subscribe(socket.id, data);
+                this.subscribe(socket, socket.id, data);
             });
             socket.on("UNSUBSCRIBE", (data) => {
-                this.unsubscribe(socket.id, data);
+                this.unsubscribe(socket, socket.id, data);
             });
             socket.on("STATE", (d) => __awaiter(this, void 0, void 0, function* () {
                 try {
@@ -135,87 +136,6 @@ class socketService {
             socket.on('disconnect', () => {
                 console.log('user disconnected');
             });
-        });
-    }
-    getSocket() {
-        return this.socket;
-    }
-    refreshRedisConnection() {
-        console.log("Refreshing Redis connections...");
-        this.redisPublisher.disconnect();
-        this.redisSubscriber.disconnect();
-        setTimeout(() => this.connectToRedis(), 1000); // Delay reconnection attempts slightly
-    }
-    subscribe(socketId, d) {
-        return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b;
-            try {
-                const data = JSON.parse(d);
-                if (!data.SpreadSheetId)
-                    return;
-                if ((_a = this.Subscriptions.get(socketId)) === null || _a === void 0 ? void 0 : _a.includes(data.SpreadSheetId))
-                    return;
-                this.Subscriptions.set(socketId, [...(this.Subscriptions.get(socketId) || []), data.SpreadSheetId]);
-                this.reverseSubscriptions.set(data.SpreadSheetId, [...(this.reverseSubscriptions.get(data.SpreadSheetId) || []), socketId]);
-                if (((_b = this.reverseSubscriptions.get(data.SpreadSheetId)) === null || _b === void 0 ? void 0 : _b.length) == 1) {
-                    console.log("subscribe to redis for " + data.SpreadSheetId);
-                    if (this.isRedisConnected) {
-                        yield this.redisSubscriber.subscribe(data.SpreadSheetId);
-                        this.redisSubscriber.on("message", (channel, data) => {
-                            this.handlestatechange(channel, data);
-                        });
-                    }
-                    else {
-                        this.RedisBuffer.push({ type: "SUBSCRIBE", channel: data.SpreadSheetId });
-                    }
-                }
-            }
-            catch (err) {
-                console.log(err);
-            }
-        });
-    }
-    unsubscribe(socketId, d) {
-        var _a;
-        try {
-            const data = JSON.parse(d);
-            if (!data.SpreadSheetId)
-                return;
-            const subscriptions = this.Subscriptions.get(socketId);
-            if (subscriptions) {
-                this.Subscriptions.set(socketId, subscriptions.filter(s => s !== data.SpreadSheetId));
-            }
-            const reverseSubscriptions = this.reverseSubscriptions.get(data.SpreadSheetId);
-            if (reverseSubscriptions) {
-                this.reverseSubscriptions.set(data.SpreadSheetId, reverseSubscriptions.filter(s => s !== socketId));
-                if (((_a = this.reverseSubscriptions.get(data.SpreadSheetId)) === null || _a === void 0 ? void 0 : _a.length) === 0) {
-                    this.reverseSubscriptions.delete(data.SpreadSheetId);
-                    this.redisSubscriber.unsubscribe(data.SpreadSheetId);
-                    console.log("unsubscribe to redis for " + data.SpreadSheetId);
-                }
-            }
-        }
-        catch (err) {
-            console.log(err);
-        }
-    }
-    handlestatechange(channel, d) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                console.log(d);
-                const data = JSON.parse(d);
-                yield this.pushToRedisQueue("STATE", JSON.stringify(data));
-                console.log("pushed to redis queue");
-                const subscribers = this.reverseSubscriptions.get(data.SpreadSheetId);
-                if (subscribers) {
-                    subscribers.forEach(subscriber => {
-                        this.io.to(subscriber).emit("STATE", data);
-                    });
-                }
-            }
-            catch (err) {
-                console.log(err);
-            }
         });
     }
     pushToRedisQueue(queue, data) {
@@ -234,5 +154,56 @@ class socketService {
             }
         }
     }
+    subscribe(socket, socketId, d) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const data = JSON.parse(d);
+                if (!data.SpreadSheetId)
+                    return;
+                socket.join(data.SpreadSheetId);
+                // if room has a new user, subscribe to redis
+                if (((_a = this.io.sockets.adapter.rooms.get(data.SpreadSheetId)) === null || _a === void 0 ? void 0 : _a.size) == 1) {
+                    this.redisSubscriber.subscribe(data.SpreadSheetId);
+                    console.log("subscribed to redis for " + data.SpreadSheetId);
+                    this.redisSubscriber.on("message", this.handleRedisMessage);
+                }
+            }
+            catch (err) {
+                console.error(err);
+            }
+        });
+    }
+    unsubscribe(socket, socketId, d) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const data = JSON.parse(d);
+                if (!data.SpreadSheetId)
+                    return;
+                socket.leave(data.SpreadSheetId);
+                console.log(this.io);
+                if (((_a = this.io.sockets.adapter.rooms.get(data.SpreadSheetId)) === null || _a === void 0 ? void 0 : _a.size) == 0) {
+                    this.redisSubscriber.unsubscribe(data.SpreadSheetId);
+                }
+            }
+            catch (err) {
+                console.error(err);
+            }
+        });
+    }
+    handleRedisMessage(channel, d) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                console.log(d);
+                const data = JSON.parse(d);
+                console.log(this.io);
+                SocketService2.getInstance().io.to(data.SpreadSheetId).emit("STATE", data);
+            }
+            catch (err) {
+                console.error(err);
+            }
+        });
+    }
 }
-exports.socketService = socketService;
+exports.SocketService2 = SocketService2;
