@@ -38,16 +38,13 @@ export const handleCreateSpreadsheet = async (req: Request, res: Response) => {
                     ]
                 }
             }, 
-            include:{
-                sheets:true
-            }
             
         });
 
         if (!spreadsheet) {
             return res.status(500).json({ msg: "Internal Server Error" });
         }
-        res.json({ success: true, message: "Created Successfully", sheetId: spreadsheet.sheets[0].id });
+        res.json({ success: true, message: "Created Successfully",SpreadSheetId: spreadsheet.id });
     }
     catch (er) {
         console.log(er)
@@ -65,14 +62,18 @@ export const handleGetSpreadsheets = async (req: Request, res: Response) => {
         let user = req.body.user
         let page = (query.page && parseInt(query.page.toString())>1) ? parseInt(query.page.toString()) : 1
         let spreadsheets = await prisma.spreadsheet.findMany({
-            where: {
-                ownerId: user.id
-            },
-            
-            // skip: 10 * (page -1),
-            // take : 10, 
 
-        })
+
+            where:{
+                collaborators: {
+                    some: {
+                        userId: user.id
+                    }
+                }
+            }, 
+            
+        }
+        )
         res.json({success:true, data:spreadsheets})
 
     }

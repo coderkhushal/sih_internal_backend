@@ -42,14 +42,11 @@ const handleCreateSpreadsheet = (req, res) => __awaiter(void 0, void 0, void 0, 
                     ]
                 }
             },
-            include: {
-                sheets: true
-            }
         });
         if (!spreadsheet) {
             return res.status(500).json({ msg: "Internal Server Error" });
         }
-        res.json({ success: true, message: "Created Successfully", sheetId: spreadsheet.sheets[0].id });
+        res.json({ success: true, message: "Created Successfully", SpreadSheetId: spreadsheet.id });
     }
     catch (er) {
         console.log(er);
@@ -64,10 +61,12 @@ const handleGetSpreadsheets = (req, res) => __awaiter(void 0, void 0, void 0, fu
         let page = (query.page && parseInt(query.page.toString()) > 1) ? parseInt(query.page.toString()) : 1;
         let spreadsheets = yield prisma.spreadsheet.findMany({
             where: {
-                ownerId: user.id
+                collaborators: {
+                    some: {
+                        userId: user.id
+                    }
+                }
             },
-            // skip: 10 * (page -1),
-            // take : 10, 
         });
         res.json({ success: true, data: spreadsheets });
     }
