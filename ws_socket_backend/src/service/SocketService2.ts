@@ -1,5 +1,6 @@
 require('dotenv').config();
 import { Redis } from "ioredis";
+import { RedisClientType, createClient } from "redis";
 
 import { Server, Socket } from "socket.io";
 import { Indata } from "../types";
@@ -7,8 +8,8 @@ import { Indata } from "../types";
 export class SocketService2{
 
     private static instance:SocketService2;
-    private redisSubscriber: Redis;
-    private redisPublisher: Redis;
+    private redisSubscriber: RedisClientType;
+    private redisPublisher: RedisClientType;
     private RedisBuffer: { type: "SUBSCRIBE" | "UNSUBSCRIBE", channel: string }[] = [];
     private isRedisConnected = false;
     public io = new Server({
@@ -19,17 +20,9 @@ export class SocketService2{
     });
 
     private constructor() {
-        this.redisSubscriber = new Redis(process.env.REDIS_URL!.toString(), {
-            retryStrategy(times) {
-                return Math.min(times * 50, 2000);
-            }
-        });
+        this.redisSubscriber =  createClient({url: process.env.REDIS_URL!.toString()});
 
-        this.redisPublisher = new Redis(process.env.REDIS_URL!.toString(), {
-            retryStrategy(times) {
-                return Math.min(times * 50, 2000);
-            }
-        });
+        this.redisPublisher = createClient({url: process.env.REDIS_URL!.toString()});
 
         this.setupRedisListeners();
         this.connectToRedis();
@@ -91,22 +84,10 @@ export class SocketService2{
     }
     async connectToRedis() {
         try {
-            if (this.redisSubscriber.status === "close" || this.redisSubscriber.status === "end") {
-                this.redisSubscriber = new Redis(process.env.REDIS_URL!.toString(), {
-                    retryStrategy(times) {
-                        return Math.min(times * 50, 2000);
-                    }
-                });
-            }
+            
 
-            if (this.redisPublisher.status === "close" || this.redisPublisher.status === "end") {
-                this.redisPublisher = new Redis(process.env.REDIS_URL!.toString(), {
-                    retryStrategy(times) {
-                        return Math.min(times * 50, 2000);
-                    }
-                });
-            }
-
+            await this.redisPublisher.connect() 
+            await this.redisSubscriber.connect()
             await Promise.all([this.redisPublisher.get("hello"), this.redisSubscriber.get("hello")]);
             console.log("Redis connected");
             this.isRedisConnected = true;
@@ -151,14 +132,14 @@ export class SocketService2{
     }
 
     private async pushToRedisQueue(queue: string, data: string) {
-        await this.redisPublisher.lpush(queue, data);
+        await this.redisPublisher.lPush(queue, data);
     }
 
     private processRedisBuffer() {
         while (this.RedisBuffer.length > 0) {
             const item = this.RedisBuffer.shift();
             if (item?.type === "SUBSCRIBE") {
-                this.redisSubscriber.subscribe(item.channel);
+                this.redisSubscriber.subscribe(item.channel, (message, channel)=>{console.log(message, channel)});
             } else if (item?.type === "UNSUBSCRIBE") {
                 this.redisSubscriber.unsubscribe(item.channel);
             }
@@ -172,9 +153,9 @@ export class SocketService2{
             socket.join(data.SpreadSheetId)
             // if room has a new user, subscribe to redis
             if(this.io.sockets.adapter.rooms.get(data.SpreadSheetId)?.size == 1){
-                this.redisSubscriber.subscribe(data.SpreadSheetId);
-                console.log("subscribed to redis for " + data.SpreadSheetId);
-                this.redisSubscriber.on("message", this.handleRedisMessage)
+                this.redisSubscriber.subscribe(data.SpreadSheetId,this.handleRedisMessage);
+                
+                
             }
 
         } catch (err) {
@@ -197,7 +178,7 @@ export class SocketService2{
         }
 
     }
-    private async handleRedisMessage(channel: string, d: string) {
+    private async handleRedisMessage( d: string, channel: string) {
         try {
             console.log(d);
             const data: Indata = JSON.parse(d);

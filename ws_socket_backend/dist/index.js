@@ -18,7 +18,6 @@ app.use((0, cors_1.default)({
 const server = http.createServer(app);
 SocketService2_1.SocketService2.getInstance().io.attach(server);
 //initialising listeners
-// socketService.getInstance().initlisteners() 
 SocketService2_1.SocketService2.getInstance().initlisteners();
 //handling routes
 app.get("/health", (req, res) => {
