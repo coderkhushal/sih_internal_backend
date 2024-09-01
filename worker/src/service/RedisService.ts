@@ -45,7 +45,7 @@ export class RedisService {
                 }
                 let result = JSON.parse(d[1])
 
-                DbManager.getInstance().UpdateSpreadSheetData(Number.parseInt(result.SpreadSheetId), Number.parseInt(result.SheetId), Number.parseInt(result.UserId), result.data)
+                await DbManager.getInstance().UpdateSpreadSheetData(Number.parseInt(result.SpreadSheetId), Number.parseInt(result.SheetId), Number.parseInt(result.UserId), result.data)
                 
             }
             catch(er){
