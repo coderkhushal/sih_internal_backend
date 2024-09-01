@@ -175,6 +175,7 @@ class SocketService2 {
             try {
                 console.log(d);
                 const data = JSON.parse(d);
+                yield SocketService2.getInstance().redisPublisher.lPush("STATE", JSON.stringify(data));
                 SocketService2.getInstance().io.to(data.SpreadSheetId).emit("STATE", data);
             }
             catch (err) {

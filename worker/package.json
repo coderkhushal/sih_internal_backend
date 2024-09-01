@@ -21,6 +21,7 @@
     "express": "^4.19.2",
     "ioredis": "^5.4.1",
     "prisma": "^5.19.0",
+    "redis": "^4.7.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"
   }

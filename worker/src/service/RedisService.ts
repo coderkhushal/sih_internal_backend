@@ -3,59 +3,60 @@ import { DbManager } from "../utils/db";
 
 export class RedisService {
     private static instance: RedisService;
-    private redisClient: Redis
-    private isRedisConnected = false
-    private constructor() {
+    private redisClient : Redis
+    private isRedisConnected =false
+    private constructor(){
 
-        this.redisClient = new Redis(process.env.REDIS_URL!.toString(),{ retryStrategy(){return 10} })
+        this.redisClient= new Redis(process.env.REDIS_URL!.toString(), { keepAlive: 800000})
         this.ConnectToRedis()
 
-        this.redisClient.on("close", () => {
-            
-            this.isRedisConnected = false
-            this.ConnectToRedis()
-        })
+    this.redisClient.on("close", ()=>{
+        console.log("closing")
+        this.isRedisConnected = false
+        this.ConnectToRedis()
+    })
     }
-    public static getInstance(): RedisService {
-        if (!RedisService.instance) {
+    public static getInstance(): RedisService{
+        if(!RedisService.instance){
             RedisService.instance = new RedisService()
         }
         return RedisService.instance
     }
 
-    public async ConnectToRedis() {
-        if (this.redisClient == undefined || this.redisClient.status == "close") {
-            this.redisClient = new Redis(process.env.REDIS_URL!.toString())
-        }
-        await this.redisClient.get("hello")
-        this.isRedisConnected = true
+ public  async ConnectToRedis(){
+    if(this.redisClient==undefined || this.redisClient.status == "close"){
+        this.redisClient= new Redis(process.env.REDIS_URL!.toString(), { keepAlive: 800000})
     }
-    public async PopFromQueue(queueName: string) {
+     await this.redisClient.get("hello")
+     this.isRedisConnected = true 
+ }
+    public async PopFromQueue(queueName: string){
         console.log("popping from queue restarted")
-        await this.ConnectToRedis()
+            await this.ConnectToRedis()
+        
+        
+             
+        while(this.isRedisConnected ){
+            try{
 
-
-
-        while (this.isRedisConnected) {
-            try {
-
-                let result: string[] | null = await this.redisClient.brpop(queueName, 5)
-                if (result) {
-
-                    let data = JSON.parse(result[1])
-
-                    DbManager.getInstance().UpdateSpreadSheetData(Number.parseInt(data.SpreadSheetId), Number.parseInt(data.SheetId), Number.parseInt(data.UserId), JSON.stringify(data.data))
+                let d : string[] | null = await this.redisClient.brpop(queueName, 0)
+                if(!d){
+                    continue;
                 }
+                let result = JSON.parse(d[1])
+
+                DbManager.getInstance().UpdateSpreadSheetData(Number.parseInt(result.SpreadSheetId), Number.parseInt(result.SheetId), Number.parseInt(result.UserId), result.data)
+                
             }
-            catch (er) {
-                console.log(er)
-
-            }
-
-
-
+            catch(er){
+            console.log(er)
 
         }
+        
+    
+    
+    
+    }
 
     }
 

@@ -15,9 +15,10 @@ const db_1 = require("../utils/db");
 class RedisService {
     constructor() {
         this.isRedisConnected = false;
-        this.redisClient = new ioredis_1.Redis(process.env.REDIS_URL.toString(), { retryStrategy() { return 10; } });
+        this.redisClient = new ioredis_1.Redis(process.env.REDIS_URL.toString(), { keepAlive: 800000 });
         this.ConnectToRedis();
         this.redisClient.on("close", () => {
+            console.log("closing");
             this.isRedisConnected = false;
             this.ConnectToRedis();
         });
@@ -31,7 +32,7 @@ class RedisService {
     ConnectToRedis() {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.redisClient == undefined || this.redisClient.status == "close") {
-                this.redisClient = new ioredis_1.Redis(process.env.REDIS_URL.toString());
+                this.redisClient = new ioredis_1.Redis(process.env.REDIS_URL.toString(), { keepAlive: 800000 });
             }
             yield this.redisClient.get("hello");
             this.isRedisConnected = true;
@@ -43,11 +44,12 @@ class RedisService {
             yield this.ConnectToRedis();
             while (this.isRedisConnected) {
                 try {
-                    let result = yield this.redisClient.brpop(queueName, 5);
-                    if (result) {
-                        let data = JSON.parse(result[1]);
-                        db_1.DbManager.getInstance().UpdateSpreadSheetData(Number.parseInt(data.SpreadSheetId), Number.parseInt(data.SheetId), Number.parseInt(data.UserId), JSON.stringify(data.data));
+                    let d = yield this.redisClient.brpop(queueName, 0);
+                    if (!d) {
+                        continue;
                     }
+                    let result = JSON.parse(d[1]);
+                    db_1.DbManager.getInstance().UpdateSpreadSheetData(Number.parseInt(result.SpreadSheetId), Number.parseInt(result.SheetId), Number.parseInt(result.UserId), result.data);
                 }
                 catch (er) {
                     console.log(er);

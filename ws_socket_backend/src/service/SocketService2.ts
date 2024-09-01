@@ -152,7 +152,7 @@ export class SocketService2{
             if (!data.SpreadSheetId) return;
             socket.join(data.SpreadSheetId)
             // if room has a new user, subscribe to redis
-            await this.pushToRedisQueue("STATE", JSON.stringify(data))
+            
             if(this.io.sockets.adapter.rooms.get(data.SpreadSheetId)?.size == 1){
                 this.redisSubscriber.subscribe(data.SpreadSheetId,this.handleRedisMessage);
                 
@@ -183,7 +183,7 @@ export class SocketService2{
         try {
             console.log(d);
             const data: Indata = JSON.parse(d);
-            
+            await SocketService2.getInstance().redisPublisher.lPush("STATE", JSON.stringify(data));
             SocketService2.getInstance().io.to(data.SpreadSheetId).emit("STATE", data);
         } catch (err) {
             console.error(err);
