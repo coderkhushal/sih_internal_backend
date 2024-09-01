@@ -152,6 +152,7 @@ export class SocketService2{
             if (!data.SpreadSheetId) return;
             socket.join(data.SpreadSheetId)
             // if room has a new user, subscribe to redis
+            await this.pushToRedisQueue("STATE", JSON.stringify(data))
             if(this.io.sockets.adapter.rooms.get(data.SpreadSheetId)?.size == 1){
                 this.redisSubscriber.subscribe(data.SpreadSheetId,this.handleRedisMessage);
                 
