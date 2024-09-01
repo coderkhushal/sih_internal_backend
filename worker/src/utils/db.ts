@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Collaborator, PrismaClient, Sheet } from "@prisma/client";
 import { StateData } from "../types";
 
 export class DbManager {
@@ -56,11 +56,11 @@ export class DbManager {
     
         return
     }
-    if(ssheet.collaborators.filter((collab)=> collab.userId == userId).length == 0){
+    if(ssheet.collaborators.filter((collab: Collaborator)=> collab.userId == userId).length == 0){
     
         return
     }
-    let sheet = ssheet.sheets.filter((sheet)=> sheet.id == SheetId)
+    let sheet = ssheet.sheets.filter((sheet: Sheet)=> sheet.id == SheetId)
     if(sheet.length == 0){
     
         return

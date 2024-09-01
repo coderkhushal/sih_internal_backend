@@ -48,6 +48,7 @@ class RedisService {
                     if (!d) {
                         continue;
                     }
+                    console.log(d[1]);
                     let result = JSON.parse(d[1]);
                     yield db_1.DbManager.getInstance().UpdateSpreadSheetData(Number.parseInt(result.SpreadSheetId), Number.parseInt(result.SheetId), Number.parseInt(result.UserId), result.data);
                 }
